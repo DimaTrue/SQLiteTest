@@ -1,134 +1,118 @@
 import React, {Component} from 'react';
-import {StyleSheet, Text, View, TouchableOpacity, Platform} from 'react-native';
-import SQLite from 'react-native-sqlite-storage';
+import {StyleSheet, Text, View, TouchableOpacity, Picker} from 'react-native';
 
-import {select} from './src/db';
-const config =
-  Platform.OS === 'ios'
-    ? {
-        name: 'TestDB',
-        createFromLocation: '~www/TestDB.db',
-        location: 'Library',
-      }
-    : {
-        name: 'TestDB.db',
-        location: 'default',
-        createFromLocation: '~www/TestDB.db',
-      };
-const db = SQLite.openDatabase(
-  config,
-  res => console.warn('resOpen ', res),
-  error => console.warn('errorOpen', error),
-);
+import {
+  getTableData,
+  addTableData,
+  updateTableData,
+  deleteTableData,
+  createTableData,
+  getColumns,
+  getTables,
+} from './src/db';
 
 export default class App extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      data: '',
+      data: [],
+      columns: [],
+      tables: [],
+      currentTable: '',
     };
+    getTables().then(res => this.setState({tables: res, currentTable: res[0]}));
   }
 
   componentDidMount() {
-    db.transaction(tx => {
-      tx.executeSql('SELECT * FROM pet ', [], (tx, res) => {
-        res.rows.length && this.setState({data: res.rows.raw()});
-      });
-    });
+    getTableData(this.state.currentTable).then((res = []) =>
+      this.setState({data: res}),
+    );
+    getColumns(this.state.currentTable).then((res = []) =>
+      this.setState({columns: res}),
+    );
   }
 
-  componentWillUnmount() {
-    db.close();
-  }
+  addData = () => addTableData().then(res => this.setState({data: res}));
 
-  handleAdd = () => {
-    db.transaction(tx => {
-      tx.executeSql(
-        'INSERT INTO pet(owner, petname) VALUES(?, ?)',
-        ['TEST6', 'test6'],
-        (tx, res) => {
-          console.warn('res', res);
-        },
-        error => console.warn('error', error.message),
-      );
-    });
-  };
+  updateData = () => updateTableData().then(res => this.setState({data: res}));
 
-  handleUpdate = () => {
-    db.transaction(
-      tx => {
-        tx.executeSql(
-          'UPDATE pet SET owner=? WHERE petname=?',
-          ['TEST6', 'test6'],
-          (tx, res) => console.warn('res', res),
-        );
-      },
-      error => console.warn(error),
-    );
-  };
+  deleteData = () => deleteTableData().then(res => this.setState({data: res}));
 
-  handleDelete = () => {
-    db.transaction(
-      tx => {
-        tx.executeSql('DELETE FROM pet WHERE owner=?', ['TEST6'], res =>
-          console.warn('res ', res),
-        );
-      },
-      error => console.warn(error),
-    );
-  };
-
-  handleCreate = () => {
-    db.transaction(
-      tx => {
-        tx.executeSql('CREATE TABLE testTable(FirstName, LastName)', [], res =>
-          console.warn(res),
-        );
-      },
-      error => console.warn(error),
-    );
-  };
-
-  handleShow = () => {
-    db.transaction(
-      tx => {
-        tx.executeSql('SELECT * FROM testTable ', [], res => console.warn(res));
-      },
-      error => console.warn(error),
-    );
-  };
+  createData = () => createTableData();
 
   render() {
+    const {data, columns, tables, currentTable} = this.state;
+    console.warn('tables', data);
+    if (columns.length) {
+      return (
+        <View style={styles.container}>
+          <Text>Current Table</Text>
+          <Picker
+            selectedValue={currentTable}
+            style={styles.picker}
+            onValueChange={(itemValue, itemIndex) =>
+              this.setState({currentTable: `SELECT * FROM ${itemValue}`})
+            }>
+            {tables &&
+              tables.map((el, i) => (
+                // eslint-disable-next-line prettier/prettier
+                <Picker.Item
+                  key={el}
+                  label={el}
+                  value={el}
+                />
+              ))}
+          </Picker>
+          <Text>SQLite Example</Text>
+          <TouchableOpacity onPress={this.addData}>
+            <Text>Add Data</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={this.updateData}>
+            <Text>UPDATE Data</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={this.deleteData}>
+            <Text>DELETE Data</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={this.createData}>
+            <Text>CREATE Data</Text>
+          </TouchableOpacity>
+
+          <View>
+            {columns.map((column, i) => {
+              return (
+                <Text key={`${i} + ${column} + ${Math.random}`}>
+                  {column}:
+                  {data.length &&
+                    data.map((el, i) => (
+                      <Text key={`${i} + ${el} + ${Math.random}`}>
+                        {el[column] + ' '}
+                      </Text>
+                    ))}
+                </Text>
+              );
+            })}
+          </View>
+        </View>
+      );
+    }
     return (
       <View style={styles.container}>
         <Text>SQLite Example</Text>
-        <TouchableOpacity onPress={this.handleAdd}>
+        <TouchableOpacity onPress={this.addData}>
           <Text>Add Data</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={this.handleUpdate}>
+        <TouchableOpacity onPress={this.updateData}>
           <Text>UPDATE Data</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={this.handleDelete}>
+        <TouchableOpacity onPress={this.deleteData}>
           <Text>DELETE Data</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={this.handleCreate}>
+        <TouchableOpacity onPress={this.createData}>
           <Text>CREATE Data</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={this.handleShow}>
+        <TouchableOpacity onPress={this.showData}>
           <Text>SHOW Data</Text>
         </TouchableOpacity>
-        <Text>
-          Owners:
-          {this.state.data &&
-            this.state.data.map((el, i) => <Text key={i}>{el.owner} , </Text>)}
-        </Text>
-        <Text>
-          Pets:
-          {this.state.data &&
-            this.state.data.map((el, i) => (
-              <Text key={i}>{el.petname} , </Text>
-            ))}
-        </Text>
       </View>
     );
   }
@@ -140,5 +124,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#F5FCFF',
+  },
+  picker: {
+    height: 50,
+    width: 200,
   },
 });
