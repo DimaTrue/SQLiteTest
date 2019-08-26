@@ -18,7 +18,7 @@ export default class App extends Component {
       data: [],
       columns: [],
       tables: [],
-      currentTable: '',
+      currentTable: 'pet',
     };
     getTables().then(res => this.setState({tables: res, currentTable: res[0]}));
   }
@@ -32,17 +32,21 @@ export default class App extends Component {
     );
   }
 
-  addData = () => addTableData().then(res => this.setState({data: res}));
+  addData = currentTable =>
+    addTableData(currentTable).then(res => this.setState({data: res}));
 
-  updateData = () => updateTableData().then(res => this.setState({data: res}));
+  updateData = currentTable =>
+    updateTableData(currentTable).then(res => this.setState({data: res}));
 
-  deleteData = () => deleteTableData().then(res => this.setState({data: res}));
+  deleteData = currentTable =>
+    deleteTableData(currentTable).then(res => this.setState({data: res}));
 
   createData = () => createTableData();
 
   render() {
     const {data, columns, tables, currentTable} = this.state;
-    console.warn('tables', data);
+    const filteredTables = tables.filter(el => el != 'android_metadata');
+    console.warn('currentTable', currentTable);
     if (columns.length) {
       return (
         <View style={styles.container}>
@@ -50,11 +54,17 @@ export default class App extends Component {
           <Picker
             selectedValue={currentTable}
             style={styles.picker}
-            onValueChange={(itemValue, itemIndex) =>
-              this.setState({currentTable: `SELECT * FROM ${itemValue}`})
-            }>
-            {tables &&
-              tables.map((el, i) => (
+            onValueChange={(itemValue, itemIndex) => {
+              this.setState({currentTable: itemValue});
+              getTableData(itemValue).then((res = []) =>
+                this.setState({data: res}),
+              );
+              getColumns(itemValue).then((res = []) =>
+                this.setState({columns: res}),
+              );
+            }}>
+            {filteredTables &&
+              filteredTables.map((el, i) => (
                 // eslint-disable-next-line prettier/prettier
                 <Picker.Item
                   key={el}
@@ -64,13 +74,13 @@ export default class App extends Component {
               ))}
           </Picker>
           <Text>SQLite Example</Text>
-          <TouchableOpacity onPress={this.addData}>
+          <TouchableOpacity onPress={() => this.addData(currentTable)}>
             <Text>Add Data</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={this.updateData}>
+          <TouchableOpacity onPress={() => this.updateData(currentTable)}>
             <Text>UPDATE Data</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={this.deleteData}>
+          <TouchableOpacity onPress={() => this.deleteData(currentTable)}>
             <Text>DELETE Data</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={this.createData}>
@@ -82,7 +92,8 @@ export default class App extends Component {
               return (
                 <Text key={`${i} + ${column} + ${Math.random}`}>
                   {column}:
-                  {data.length &&
+                  {data &&
+                    data.length > 0 &&
                     data.map((el, i) => (
                       <Text key={`${i} + ${el} + ${Math.random}`}>
                         {el[column] + ' '}

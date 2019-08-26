@@ -24,7 +24,7 @@ export const getTableData = currentTable => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        'SELECT * FROM pet',
+        `SELECT * FROM ${currentTable}`,
         [],
         (tx, res) => {
           resolve(res.rows.length && res.rows.raw());
@@ -35,14 +35,14 @@ export const getTableData = currentTable => {
   });
 };
 
-export const addTableData = () => {
+export const addTableData = currentTable => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        'INSERT INTO pet(owner, petname) VALUES(?, ?)',
-        ['TEST1', 'test1'],
+        `INSERT INTO ${currentTable}(owner, petname) VALUES(?, ?)`,
+        ['TEST2', 'test2'],
         (tx, res) => {
-          resolve(getTableData());
+          resolve(getTableData(currentTable));
         },
         error => resolve(console.warn('error', error)),
       );
@@ -50,14 +50,14 @@ export const addTableData = () => {
   });
 };
 
-export const updateTableData = () => {
+export const updateTableData = currentTable => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        'UPDATE pet SET petname=? WHERE owner=?',
-        ['parrot', 'TEST1'],
+        `UPDATE ${currentTable} SET owner=? WHERE petname=?`,
+        ['Jack', 'parrot'],
         (tx, res) => {
-          resolve(getTableData());
+          resolve(getTableData(currentTable));
         },
         error => resolve(console.warn('error', error)),
       );
@@ -65,14 +65,14 @@ export const updateTableData = () => {
   });
 };
 
-export const deleteTableData = () => {
+export const deleteTableData = currentTable => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        'DELETE FROM pet WHERE owner=?',
-        ['TEST1'],
+        `DELETE FROM ${currentTable} WHERE owner=?`,
+        ['TEST11'],
         (tx, res) => {
-          resolve(getTableData());
+          resolve(getTableData(currentTable));
         },
         error => resolve(console.warn('error', error)),
       );
@@ -84,7 +84,7 @@ export const createTableData = () => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        'CREATE TABLE testTable3(petname, owner)',
+        'CREATE TABLE testTable1(Firstname, Lastname)',
         [],
         (tx, res) => {
           resolve(console.warn(res));
@@ -95,11 +95,11 @@ export const createTableData = () => {
   });
 };
 
-export const getColumns = () => {
+export const getColumns = currentTable => {
   return new Promise((resolve, reject) => {
     db.transaction(tx => {
       tx.executeSql(
-        'PRAGMA table_info(pet)',
+        `PRAGMA table_info(${currentTable})`,
         [],
         (tx, res) => {
           resolve(res.rows.raw().map(el => el.name));
